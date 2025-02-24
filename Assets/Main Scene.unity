@@ -317,6 +317,7 @@ MonoBehaviour:
   muzzleFlash: {fileID: 0}
   gunshotSound: {fileID: 43713089}
   bulletPrefab: {fileID: 5254686728187595280, guid: 1328558556e1a624f8253c491f90e468, type: 3}
+  bulletPrefab: {fileID: 1750575151471631660, guid: 1328558556e1a624f8253c491f90e468, type: 3}
 --- !u!82 &43713089
 AudioSource:
   m_ObjectHideFlags: 0
@@ -2358,7 +2359,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.59
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.z
