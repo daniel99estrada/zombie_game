@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Enemy Configuration
   m_EditorClassIdentifier: 
   Health: 100
-  AttackDelay: 1
+  AttackDelay: 0.5
   Damage: 5
   AttackRadius: 1
   AIUpdateInterval: 0.1
@@ -27,4 +27,4 @@ MonoBehaviour:
   Radius: 0.5
   Speed: 0.5
   StoppingDistance: 0.5
-  DamageVFX: {fileID: 1834194341294532, guid: d5f26854a8904624c8073139cd2eb346, type: 3}
+  DamageVFX: {fileID: 0}

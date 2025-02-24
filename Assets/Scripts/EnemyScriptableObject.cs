@@ -24,7 +24,4 @@ public class EnemyScriptableObject : ScriptableObject
     public float Radius = 0.5f;
     public float Speed = 3f;
     public float StoppingDistance = 0.5f;
-
-    [Header("Death Effect")]
-    public GameObject DamageVFX;
 }

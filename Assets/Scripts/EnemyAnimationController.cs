@@ -15,13 +15,14 @@ public class EnemyAnimationController : MonoBehaviour
 
     private const string Is_Walking = "IsWalking";
     private const string Death = "Death";
-    public Enemy enemy;
+    private Enemy enemy;
 
     void Awake()
     {
         animator = GetComponent<Animator>();
         enemy = GetComponent<Enemy>();
         enemy.OnDeath += HandleDeath;
+        enemy.AttackRadius.OnAttack += HandleAttack;
     }
 
     public void SetAnimation(EnemyAnimationState state)
@@ -44,6 +45,11 @@ public class EnemyAnimationController : MonoBehaviour
                 animator.SetTrigger(Death);
                 break;
         }
+    }
+
+    private void HandleAttack()
+    {
+        SetAnimation(EnemyAnimationState.Attack);
     }
 
     private void HandleDeath()

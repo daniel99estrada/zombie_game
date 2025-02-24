@@ -7,17 +7,15 @@ public class AttackRadius : MonoBehaviour
 {   
     public SphereCollider Collider;
     public EnemyAnimationController EnemyAnimationController;
-    private List<IDamageable> Damageables = new List<IDamageable>();
     public int Damage = 10;
     public float AttackDelay = 0.5f;
-    public delegate void AttackEvent(IDamageable Target);
+    public delegate void AttackEvent();
     public AttackEvent OnAttack;
     private Coroutine AttackCoroutine; // Fixed: Made AttackCoroutine private to avoid external modifications
 
     private void Awake()
     {
         Collider = GetComponent<SphereCollider>();
-        
         Collider.isTrigger = true; 
     }
 
@@ -28,69 +26,34 @@ public class AttackRadius : MonoBehaviour
 
         if (damageable != null)
         {
-            Damageables.Add(damageable);
-
             if (AttackCoroutine == null) // Fixed: Ensure coroutine starts only if not already running
             {
-                AttackCoroutine = StartCoroutine(Attack());
+                AttackCoroutine = StartCoroutine(Attack(damageable));
             }
         }
     }
 
-    private void OnTriggerExit(Collider other) // Fixed: Changed to private for consistency
-    {
-        IDamageable damageable = other.GetComponent<IDamageable>();
-
-        if (damageable != null)
+    private void OnTriggerExit(Collider other)
+    {   
+        if (AttackCoroutine != null)
         {
-            Damageables.Remove(damageable);
-            if (Damageables.Count == 0 && AttackCoroutine != null)
-            {
-                StopCoroutine(AttackCoroutine); // Fixed: Stop coroutine if no damageables remain
-                AttackCoroutine = null;
-            }
+            StopCoroutine(AttackCoroutine);
+            AttackCoroutine = null;
         }
     }
 
-    private IEnumerator Attack()
+    private IEnumerator Attack(IDamageable damageable)
     {
         WaitForSeconds Wait = new WaitForSeconds(AttackDelay);
 
-        while (Damageables.Count > 0)
-        {
-            IDamageable closestDamageable = null;
-            float closestDistance = float.MaxValue;
-            
-            for (int i = 0; i < Damageables.Count; i++)
-            {
-                Transform damageableTransform = Damageables[i].GetTransform();
-                float distance = Vector3.Distance(transform.position, damageableTransform.position);
-                
-                if (distance < closestDistance)
-                {
-                    closestDamageable = Damageables[i]; // Fixed: Correctly assigned closest IDamageable
-                    closestDistance = distance;
-                } 
-            }
+        OnAttack?.Invoke();
+        
+        damageable.TakeDamage(Damage);
 
-            if (closestDamageable != null)
-            {
-                OnAttack?.Invoke(closestDamageable);
-                closestDamageable.TakeDamage(Damage);
-                
-                EnemyAnimationController.SetAnimation(EnemyAnimationState.Attack); 
-            }
+        EnemyAnimationController.SetAnimation(EnemyAnimationState.Attack);
 
-            yield return Wait;
-
-            Damageables.RemoveAll(DisabledDamageables);
-        }
-
+        yield return Wait;
+ 
         AttackCoroutine = null;
-    }
-
-    private bool DisabledDamageables(IDamageable damageable)
-    {
-        return damageable == null || !damageable.GetTransform().gameObject.activeSelf; // Fixed: Corrected reference to damageable's transform
     }
 }

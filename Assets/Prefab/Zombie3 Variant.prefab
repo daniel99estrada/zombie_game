@@ -256,9 +256,7 @@ MonoBehaviour:
   Movement: {fileID: 7274762297986335268}
   Agent: {fileID: 7291993967577850310}
   EnemyScriptableObject: {fileID: 11400000, guid: d2a38183bb39da847923867a7a1eafc1, type: 2}
-  EnemyAnimationController: {fileID: 841675522567857252}
   Health: 100
-  EnemyDamageFX: {fileID: 4078921353066882519}
 --- !u!136 &2915583544494216993
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -354,3 +352,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd0ccf889d5ca3945aa241077ae3887c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  enemy: {fileID: 5713954688137182926}
+  duration: 0.1

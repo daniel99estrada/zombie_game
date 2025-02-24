@@ -63,6 +63,7 @@ public class EnemySpawner : MonoBehaviour
             NavMeshHit Hit;  // Fixed type name
             if(NavMesh.SamplePosition(Triangulation.vertices[VertexIndex], out Hit, 2f, -1))  // Fixed method name
             {
+                enemy.Movement.Player = Player;
                 enemy.Agent.Warp(Hit.position);
                 enemy.Agent.enabled = true;
                 enemy.Movement.Triangulation = Triangulation;

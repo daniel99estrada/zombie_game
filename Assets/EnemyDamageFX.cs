@@ -5,8 +5,14 @@ public class EnemyDamageFX : MonoBehaviour
 {
     private Material material;
     private Color originalColor;
-    private static readonly int BaseMap = Shader.PropertyToID("_BaseColor"); // For URP/Lit Shader
-
+    private static readonly int BaseMap = Shader.PropertyToID("_BaseColor");
+    public Enemy enemy;
+    public float duration = 0.1f;
+    
+    void Awake()
+    {
+        enemy.OnAttacked += TakeDamageEffect;
+    }
     void Start()
     {
         if (TryGetComponent<Renderer>(out Renderer renderer))
@@ -16,7 +22,7 @@ public class EnemyDamageFX : MonoBehaviour
         }
     }
 
-    public void TakeDamageEffect(float duration = 0.1f)
+    public void TakeDamageEffect()
     {
         if (material != null)
         {

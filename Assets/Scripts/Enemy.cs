@@ -13,7 +13,8 @@ public class Enemy : PoolableObject, IDamageable
     public int Health = 100;
     public delegate void DeathEvent();
     public DeathEvent OnDeath;
-    public EnemyDamageFX EnemyDamageFX;
+    public delegate void OnAttackedEvent();
+    public OnAttackedEvent OnAttacked;
 
     private Coroutine LookCoroutine;
 
@@ -85,8 +86,7 @@ public class Enemy : PoolableObject, IDamageable
     public void TakeDamage(int Damage)
     {
         Health -= Damage;
-        EnemyDamageFX.TakeDamageEffect();
-        GameObject DeathEffect = Instantiate(EnemyScriptableObject.DamageVFX, transform.position, Quaternion.identity);
+        OnAttacked?.Invoke();
 
         if (Health <= 0)
         {   

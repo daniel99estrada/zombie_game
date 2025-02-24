@@ -1,189 +1,136 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class EnemyMovement : MonoBehaviour
-{   
-    [SerializeField]
-    public EnemyState DefaultState;
+{
+    [SerializeField] private EnemyState DefaultState;
+    [SerializeField] private float IdleLocationRadius = 4f;
+    [SerializeField] private float IdleMoveSpeedMultiplier = 0.5f;
+    [SerializeField] private float updateSpeed = 0.1f;
+    [SerializeField] private int WaypointIndex = 0;
+
     public EnemyAnimationController EnemyAnimationController;
+    public EnemyLineOfSightChecker LineOfSightChecker;
+
+    public Transform Player;
+    public NavMeshTriangulation Triangulation;
+    public float Health = 100f;
+
     private EnemyState _state;
     public EnemyState State
     {
-        get
-        {
-            return _state;
-        }
+        get => _state;
         set
-        {   
+        {
+            if (_state == value) return;
             OnStateChange?.Invoke(_state, value);
             _state = value;
         }
     }
-    public EnemyLineOfSightChecker LineOfSightChecker;
-    public delegate void StateChageEvent(EnemyState oldState, EnemyState newState);
-    public StateChageEvent OnStateChange;
-    public float IdleLocationRadius = 4f;
-    public float IdleMoveSpeedMultiplier = 0.5f;
-    public Transform Player;
-    public UnityEngine.AI.NavMeshTriangulation Triangulation;
-    public float updateSpeed = 0.1f;
-    public float Health = 100f;
 
-    private UnityEngine.AI.NavMeshAgent agent;
-
+    private NavMeshAgent agent;
     private Coroutine FollowCoroutine;
-
-    private Enemy Enemy; 
-
-    [SerializeField]
-    private int WaypointIndex = 0;
+    private Enemy Enemy;
     private Vector3[] Waypoints = new Vector3[4];
-    private void OnDisable()
-    {
-        _state = DefaultState;
-    }
 
-    void Awake() 
-    {
-        agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
-        OnStateChange += HandleStateChange;
-        
-        LineOfSightChecker.OnGainSight += HandleGainSight;
-        LineOfSightChecker.OnLoseSight += HandleLoseSight;
+    public delegate void StateChangeEvent(EnemyState oldState, EnemyState newState);
+    public event StateChangeEvent OnStateChange;
 
+    private void OnDisable() => State = DefaultState;
+
+    private void Awake()
+    {
+        agent = GetComponent<NavMeshAgent>();
         Enemy = GetComponent<Enemy>();
-        Enemy.OnDeath += HandleDeath;
-    }
 
-    private void HandleDeath()
-    {
-        State = EnemyState.Dead;
-    }
-
-    private void HandleGainSight(Player player)
-    {
-        State = EnemyState.Chase;
-    }
-
-    private void HandleLoseSight(Player player)
-    {
-        State = DefaultState;
+        OnStateChange += HandleStateChange;
+        LineOfSightChecker.OnGainSight += _ => State = EnemyState.Chase;
+        LineOfSightChecker.OnLoseSight += _ => State = DefaultState;
+        Enemy.OnDeath += () => State = EnemyState.Dead;
     }
 
     public void Spawn()
-    {   
+    {
         for (int i = 0; i < Waypoints.Length; i++)
         {
-            NavMeshHit Hit;
-            if (NavMesh.SamplePosition(Triangulation.vertices[Random.Range(0, Triangulation.vertices.Length)], out Hit, 2f, agent.areaMask))
-            {
-                Waypoints[i] = Hit.position;
-            }
+            if (NavMesh.SamplePosition(Triangulation.vertices[Random.Range(0, Triangulation.vertices.Length)], out NavMeshHit hit, 2f, agent.areaMask))
+                Waypoints[i] = hit.position;
             else
-            {
-                Debug.LogError($"Unable to find position for navmesh near triangulation vertrex");
-            }
+                Debug.LogError("Unable to find position for NavMesh near triangulation vertex");
         }
         OnStateChange?.Invoke(EnemyState.Spawn, DefaultState);
     }
 
-    void Update()
-    {   
-        if (agent.velocity.magnitude > 0.01f)
-        {
-            EnemyAnimationController.SetAnimation(EnemyAnimationState.Walk);
-        }
-        else
-        {
-            EnemyAnimationController.SetAnimation(EnemyAnimationState.Idle);
-        }
-    }
+    private void Update()
+        => EnemyAnimationController.SetAnimation(agent.velocity.magnitude > 0.01f ? EnemyAnimationState.Walk : EnemyAnimationState.Idle);
 
     private void HandleStateChange(EnemyState oldState, EnemyState newState)
-    {   
-        if(FollowCoroutine != null)
-        {
-            StopCoroutine(FollowTarget());
-        }
+    {
+        if (FollowCoroutine != null) StopCoroutine(FollowCoroutine);
 
         if (oldState == EnemyState.Idle)
-        {
             agent.speed /= IdleMoveSpeedMultiplier;
-        }
 
-        switch (newState)
+        FollowCoroutine = newState switch
         {
-            case EnemyState.Idle:
-                FollowCoroutine = StartCoroutine(DoIdleMotion());
-                break;
-            case EnemyState.Patrol:
-                FollowCoroutine = StartCoroutine(DoPatrolMotion());
-                break;
-            case EnemyState.Chase:
-                FollowCoroutine = StartCoroutine(FollowTarget());
-                break;
-            case EnemyState.Dead:
-                break;
-        }
-    } 
+            EnemyState.Idle => StartCoroutine(DoIdleMotion()),
+            EnemyState.Patrol => StartCoroutine(DoPatrolMotion()),
+            EnemyState.Chase => StartCoroutine(FollowTarget()),
+            _ => null
+        };
+    }
 
     private IEnumerator DoPatrolMotion()
     {
-        WaitForSeconds Wait = new WaitForSeconds(updateSpeed);
+        WaitForSeconds wait = new WaitForSeconds(updateSpeed);
 
         yield return new WaitUntil(() => agent.enabled && agent.isOnNavMesh);
         agent.SetDestination(Waypoints[WaypointIndex]);
-        while(true)
+
+        while (true)
         {
-            if (agent.enabled && agent.isOnNavMesh && agent.remainingDistance <= agent.stoppingDistance)
+            if (agent.remainingDistance <= agent.stoppingDistance)
             {
-                WaypointIndex++;
-                if(WaypointIndex >= Waypoints.Length)
-                {
-                    WaypointIndex = 0;
-                }
+                WaypointIndex = (WaypointIndex + 1) % Waypoints.Length;
                 agent.SetDestination(Waypoints[WaypointIndex]);
             }
-            yield return Wait;
+            yield return wait;
         }
     }
+
     private IEnumerator DoIdleMotion()
     {
-        WaitForSeconds Wait = new WaitForSeconds(updateSpeed);
-
+        WaitForSeconds wait = new WaitForSeconds(updateSpeed);
         agent.speed *= IdleMoveSpeedMultiplier;
 
-        while(true)
+        while (true)
         {
             if (!agent.enabled || !agent.isOnNavMesh)
             {
-                yield return Wait;
+                yield return wait;
+                continue;
             }
-            else if (agent.remainingDistance <= agent.stoppingDistance)
+
+            if (agent.remainingDistance <= agent.stoppingDistance)
             {
                 Vector2 point = Random.insideUnitCircle * IdleLocationRadius;
-                UnityEngine.AI.NavMeshHit hit;
-
-                if(UnityEngine.AI.NavMesh.SamplePosition(agent.transform.position + new Vector3(point.x, 0, point.y), out hit, 2f, agent.areaMask))
-                {
+                if (NavMesh.SamplePosition(agent.transform.position + new Vector3(point.x, 0, point.y), out NavMeshHit hit, 2f, agent.areaMask))
                     agent.SetDestination(hit.position);
-                }
             }
-            yield return Wait;
 
+            yield return wait;
         }
     }
+
     private IEnumerator FollowTarget()
     {
-        WaitForSeconds Wait = new WaitForSeconds(updateSpeed);
+        WaitForSeconds wait = new WaitForSeconds(updateSpeed);
 
-        while(enabled)
+        while (enabled)
         {
-            agent.SetDestination(Player.transform.position);
-
-            yield return Wait;
+            agent.SetDestination(Player.position);
+            yield return wait;
         }
     }
 }
